@@ -82,3 +82,11 @@ The optimized build will be output to the `build` folder.
 
 - To use your own session data, replace the `sampleData` object in `src/App.js`.
 - UI components can be customized in the `src/components/` and `src/components/ui/` folders.
+
+## Demo Video
+
+Watch a walkthrough and explanation of the code here:
+
+[![Code Walkthrough](https://img.youtube.com/vi/1QHSxNQbiV9VzxV6-_vgdR2X1dmDy-H5d/0.jpg)](https://drive.google.com/file/d/1QHSxNQbiV9VzxV6-_vgdR2X1dmDy-H5d/view)
+
+[Click here to watch the video on Google Drive](https://drive.google.com/file/d/1QHSxNQbiV9VzxV6-_vgdR2X1dmDy-H5d/view)
