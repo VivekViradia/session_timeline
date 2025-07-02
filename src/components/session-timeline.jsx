@@ -18,8 +18,8 @@ export default function SessionTimeline({ data }) {
     const startTime = new Date(sessionStart)
     startTime.setSeconds(0, 0) // Round to nearest minute
 
-    // Create markers every 2 minutes for better readability
-    const interval = Math.max(2, Math.ceil(sessionDuration / 10))
+    // Create markers every 1 minutes for better readability
+    const interval = Math.max(1, Math.ceil(sessionDuration / 10))
 
     for (let i = 0; i <= sessionDuration + interval; i += interval) {
       const time = new Date(startTime.getTime() + i * 60 * 1000)
@@ -42,15 +42,6 @@ export default function SessionTimeline({ data }) {
       day: "2-digit",
       month: "long",
       year: "numeric",
-    })
-  }
-
-  const formatTime = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString("en-US", {
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
     })
   }
 
