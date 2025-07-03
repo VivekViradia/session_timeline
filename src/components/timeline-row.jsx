@@ -1,5 +1,4 @@
-import React from "react"
-import { useState } from "react"
+import React, { useState } from "react"
 import { ChevronRight, Video, Mic, AlertTriangle, LogIn, LogOut } from "lucide-react"
 import EventTooltip from "./event-tooltip"
 import { Button } from "./ui/button"
@@ -14,7 +13,6 @@ export default function TimelineRow({
   const [hoveredEvent, setHoveredEvent] = useState(null)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
-  // Calculate position percentage based on time
   const getPositionPercentage = (timestamp) => {
     const eventTime = new Date(timestamp)
     const elapsed = eventTime.getTime() - sessionStart.getTime()
@@ -22,7 +20,6 @@ export default function TimelineRow({
     return Math.max(0, Math.min(100, (elapsed / total) * 100))
   }
 
-  // Calculate duration percentage
   const getDurationPercentage = (startTime, endTime) => {
     const start = new Date(startTime)
     const end = new Date(endTime)
@@ -58,39 +55,29 @@ export default function TimelineRow({
     setHoveredEvent(null)
   }
 
-  // Generate participant ID based on index
-  const participantCode = `ID-${String(participantIndex + 1).padStart(3, "0")}`
+  const participantCode = `ABC${String(participantIndex + 1).padStart(3, "0")}`
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4">
-      {/* Participant Info */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-white font-medium">
-            {participant.name} ({participantCode})
-          </h3>
-          <div className="text-sm text-gray-400">
-            {formatDate(participant.timelog[0]?.start || sessionStart.toISOString())},{" "}
-            {formatTime(participant.timelog[0]?.start || sessionStart.toISOString())} | Duration {sessionDuration} Mins
-          </div>
+    <div className="flex items-center gap-4 bg-gray-900 border-b border-gray-800 py-2 px-2 rounded">
+      {/* Left: Participant Info */}
+      <div className="w-56 flex-shrink-0">
+        <div className="text-white font-medium">{participant.name} ({participantCode})</div>
+        <div className="text-xs text-gray-400">
+          {formatDate(participant.timelog[0]?.start || sessionStart.toISOString())},{" "}
+          {formatTime(participant.timelog[0]?.start || sessionStart.toISOString())} | Duration {sessionDuration} Mins
         </div>
-
-        <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
-          View details
-          <ChevronRight className="w-4 h-4 ml-1" />
-        </Button>
       </div>
 
-      {/* Timeline */}
-      <div className="relative h-12 bg-gray-700 rounded-lg overflow-hidden">
+      {/* Center: Timeline */}
+      <div className="relative flex-1 h-12 overflow-visible">
         {/* Session duration bar */}
-        <div className="absolute inset-y-0 left-0 right-0 bg-gray-600 rounded-lg"></div>
+        <div className="absolute inset-y-0 left-0 right-0 rounded-lg"></div>
 
         {/* Active session periods */}
         {participant.timelog.map((session, index) => (
           <div
             key={index}
-            className="absolute top-0 bottom-0 bg-blue-500 rounded"
+            className="absolute top-1/2 -translate-y-1/2 h-2 bg-blue-500 rounded"
             style={{
               left: `${getPositionPercentage(session.start)}%`,
               width: `${getDurationPercentage(session.start, session.end)}%`,
@@ -98,84 +85,61 @@ export default function TimelineRow({
           />
         ))}
 
-        {/* Join events */}
+        {/* Join/Leave Events */}
         {participant.timelog.map((session, index) => (
-          <div
-            key={`join-${index}`}
-            className="absolute top-1/2 transform -translate-y-1/2 w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-500 transition-colors z-10"
-            style={{ left: `calc(${getPositionPercentage(session.start)}% - 16px)` }}
-            onMouseEnter={(e) =>
-              handleMouseEnter(
-                {
-                  type: "join",
-                  time: session.start,
-                  participant: participant.name,
-                },
-                e,
-              )
-            }
-            onMouseLeave={handleMouseLeave}
-          >
-            <LogIn className="w-4 h-4 text-white" />
-          </div>
-        ))}
-
-        {/* Leave events */}
-        {participant.timelog.map((session, index) => (
-          <div
-            key={`leave-${index}`}
-            className="absolute top-1/2 transform -translate-y-1/2 w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-500 transition-colors z-10"
-            style={{ left: `calc(${getPositionPercentage(session.end)}% - 16px)` }}
-            onMouseEnter={(e) =>
-              handleMouseEnter(
-                {
-                  type: "leave",
-                  time: session.end,
-                  participant: participant.name,
-                },
-                e,
-              )
-            }
-            onMouseLeave={handleMouseLeave}
-          >
-            <LogOut className="w-4 h-4 text-white" />
-          </div>
-        ))}
-
-        {/* Webcam events - Show both on and off */}
-        {participant.events.webcam.map((event, index) => (
-          <React.Fragment key={`webcam-${index}`}>
-            {/* Webcam ON event */}
+          <React.Fragment key={index}>
             <div
-              className="absolute top-1/2 transform -translate-y-1/2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition-colors z-20"
-              style={{ left: `calc(${getPositionPercentage(event.start)}% - 16px)` }}
+              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-700 rounded-full flex items-center justify-center z-10"
+              style={{ left: `calc(${getPositionPercentage(session.start)}% - 14px)` }}
               onMouseEnter={(e) =>
                 handleMouseEnter(
-                  {
-                    type: "webcam_on",
-                    time: event.start,
-                    participant: participant.name,
-                  },
-                  e,
+                  { type: "join", time: session.start, participant: participant.name },
+                  e
+                )
+              }
+              onMouseLeave={handleMouseLeave}
+            >
+              <LogIn className="w-4 h-4 text-white" />
+            </div>
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-700 rounded-full flex items-center justify-center z-10"
+              style={{ left: `calc(${getPositionPercentage(session.end)}% - 14px)` }}
+              onMouseEnter={(e) =>
+                handleMouseEnter(
+                  { type: "leave", time: session.end, participant: participant.name },
+                  e
+                )
+              }
+              onMouseLeave={handleMouseLeave}
+            >
+              <LogOut className="w-4 h-4 text-white" />
+            </div>
+          </React.Fragment>
+        ))}
+
+        {/* Webcam Events */}
+        {participant.events.webcam.map((event, index) => (
+          <React.Fragment key={`webcam-${index}`}>
+            <div
+              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center z-20"
+              style={{ left: `calc(${getPositionPercentage(event.start)}% - 14px)` }}
+              onMouseEnter={(e) =>
+                handleMouseEnter(
+                  { type: "webcam_on", time: event.start, participant: participant.name },
+                  e
                 )
               }
               onMouseLeave={handleMouseLeave}
             >
               <Video className="w-4 h-4 text-white" />
             </div>
-
-            {/* Webcam OFF event */}
             <div
-              className="absolute top-1/2 transform -translate-y-1/2 w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-500 transition-colors z-20"
-              style={{ left: `calc(${getPositionPercentage(event.end)}% - 16px)` }}
+              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-600 rounded-full flex items-center justify-center z-20"
+              style={{ left: `calc(${getPositionPercentage(event.end)}% - 14px)` }}
               onMouseEnter={(e) =>
                 handleMouseEnter(
-                  {
-                    type: "webcam_off",
-                    time: event.end,
-                    participant: participant.name,
-                  },
-                  e,
+                  { type: "webcam_off", time: event.end, participant: participant.name },
+                  e
                 )
               }
               onMouseLeave={handleMouseLeave}
@@ -185,40 +149,29 @@ export default function TimelineRow({
           </React.Fragment>
         ))}
 
-        {/* Mic events - Show both on and off */}
+        {/* Mic Events */}
         {participant.events.mic.map((event, index) => (
           <React.Fragment key={`mic-${index}`}>
-            {/* Mic ON event (unmute) */}
             <div
-              className="absolute top-1/2 transform -translate-y-1/2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-500 transition-colors z-20"
-              style={{ left: `calc(${getPositionPercentage(event.start)}% - 16px)` }}
+              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center z-20"
+              style={{ left: `calc(${getPositionPercentage(event.start)}% - 14px)` }}
               onMouseEnter={(e) =>
                 handleMouseEnter(
-                  {
-                    type: "mic_on",
-                    time: event.start,
-                    participant: participant.name,
-                  },
-                  e,
+                  { type: "mic_on", time: event.start, participant: participant.name },
+                  e
                 )
               }
               onMouseLeave={handleMouseLeave}
             >
               <Mic className="w-4 h-4 text-white" />
             </div>
-
-            {/* Mic OFF event (mute) */}
             <div
-              className="absolute top-1/2 transform -translate-y-1/2 w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-500 transition-colors z-20"
-              style={{ left: `calc(${getPositionPercentage(event.end)}% - 16px)` }}
+              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-600 rounded-full flex items-center justify-center z-20"
+              style={{ left: `calc(${getPositionPercentage(event.end)}% - 14px)` }}
               onMouseEnter={(e) =>
                 handleMouseEnter(
-                  {
-                    type: "mic_off",
-                    time: event.end,
-                    participant: participant.name,
-                  },
-                  e,
+                  { type: "mic_off", time: event.end, participant: participant.name },
+                  e
                 )
               }
               onMouseLeave={handleMouseLeave}
@@ -228,21 +181,16 @@ export default function TimelineRow({
           </React.Fragment>
         ))}
 
-        {/* Error events */}
+        {/* Error Events */}
         {participant.events.errors?.map((error, index) => (
           <div
             key={`error-${index}`}
-            className="absolute top-1/2 transform -translate-y-1/2 w-8 h-8 bg-red-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-red-500 transition-colors z-30"
-            style={{ left: `calc(${getPositionPercentage(error.start)}% - 16px)` }}
+            className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-red-600 rounded-full flex items-center justify-center z-30"
+            style={{ left: `calc(${getPositionPercentage(error.start)}% - 14px)` }}
             onMouseEnter={(e) =>
               handleMouseEnter(
-                {
-                  type: "error",
-                  time: error.start,
-                  message: error.message,
-                  participant: participant.name,
-                },
-                e,
+                { type: "error", time: error.start, message: error.message, participant: participant.name },
+                e
               )
             }
             onMouseLeave={handleMouseLeave}
@@ -251,10 +199,10 @@ export default function TimelineRow({
           </div>
         ))}
 
-        {/* Event count badges - Updated to show total events */}
+        {/* Event count badge */}
         {(participant.events.mic.length > 1 || participant.events.webcam.length > 1) && (
           <div
-            className="absolute top-1/2 transform -translate-y-1/2 w-6 h-6 bg-blue-800 rounded-full flex items-center justify-center text-xs text-white font-medium z-40"
+            className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-blue-800 rounded-full flex items-center justify-center text-xs text-white font-medium z-40"
             style={{
               left: `calc(${getPositionPercentage(
                 participant.events.mic[0]?.start || participant.events.webcam[0]?.start,
@@ -264,6 +212,14 @@ export default function TimelineRow({
             {(participant.events.mic.length + participant.events.webcam.length) * 2}
           </div>
         )}
+      </div>
+
+      {/* Right: View Details */}
+      <div className="w-32 flex-shrink-0 flex justify-end">
+        <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
+          View details
+          <ChevronRight className="w-4 h-4 ml-1" />
+        </Button>
       </div>
 
       {/* Tooltip */}

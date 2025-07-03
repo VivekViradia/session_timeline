@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react"
-// import { Switch } from "@/components/ui/switch"
 import { Users, Calendar } from "lucide-react"
 import TimelineRow from "./timeline-row"
 import { Switch } from "./ui/switch"
@@ -7,21 +6,16 @@ import { Switch } from "./ui/switch"
 export default function SessionTimeline({ data }) {
   const [showParticipantTimeline, setShowParticipantTimeline] = useState(true)
 
-  // Calculate session duration and time markers
   const sessionStart = new Date(data.start)
   const sessionEnd = new Date(data.end)
-  const sessionDuration = Math.ceil((sessionEnd.getTime() - sessionStart.getTime()) / (1000 * 60)) // in minutes
+  const sessionDuration = Math.ceil((sessionEnd.getTime() - sessionStart.getTime()) / (1000 * 60))
 
-  // Generate time markers for the timeline
   const timeMarkers = useMemo(() => {
     const markers = []
     const startTime = new Date(sessionStart)
-    startTime.setSeconds(0, 0) // Round to nearest minute
-
-    // Create markers every 1 minutes for better readability
+    startTime.setSeconds(0, 0)
     const interval = Math.max(1, Math.ceil(sessionDuration / 10))
-
-    for (let i = 0; i <= sessionDuration + interval; i += interval) {
+    for (let i = 0; i <= sessionDuration; i += interval) {
       const time = new Date(startTime.getTime() + i * 60 * 1000)
       markers.push({
         time: time.toLocaleTimeString("en-US", {
@@ -32,7 +26,6 @@ export default function SessionTimeline({ data }) {
         position: (i / sessionDuration) * 100,
       })
     }
-
     return markers
   }, [sessionStart, sessionDuration])
 
@@ -46,16 +39,15 @@ export default function SessionTimeline({ data }) {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto">
+    <div className="w-full max-w-7xl mx-auto border-2 border-blue-400 rounded-lg p-2 bg-gray-900">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <Calendar className="w-6 h-6 text-gray-400" />
-          <h1 className="text-xl font-semibold text-white">Participants wise Session Timeline</h1>
+      <div className="flex items-center justify-between mb-2 px-2">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-gray-400" />
+          <span className="text-base font-semibold text-white">Participants wise Session Timeline</span>
         </div>
-
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-400">Show participant timeline</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Show participant timeline</span>
           <Switch
             checked={showParticipantTimeline}
             onCheckedChange={setShowParticipantTimeline}
@@ -64,50 +56,35 @@ export default function SessionTimeline({ data }) {
         </div>
       </div>
 
-      {/* Session Info */}
-      <div className="mb-6 p-4 bg-gray-800 rounded-lg">
-        <div className="flex items-center gap-6 text-sm text-gray-300">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            <span>Meeting ID: {data.meetingId}</span>
-          </div>
-          <div>Date: {formatDate(data.start)}</div>
-          <div>Duration: {sessionDuration} mins</div>
-          <div>Participants: {data.uniqueParticipantsCount}</div>
+      {/* Time Scale */}
+      <div className="relative h-8 mb-2 px-2">
+        <div className="absolute inset-0 flex items-end">
+          {timeMarkers.map((marker, idx) => (
+            <div
+              key={idx}
+              className="flex flex-col items-center"
+              style={{ position: "absolute", left: `${marker.position}%` }}
+            >
+              <div className="w-px h-2 bg-gray-600 mb-1"></div>
+              <span className="text-xs text-gray-400">{marker.time}</span>
+            </div>
+          ))}
         </div>
       </div>
 
+      {/* Participant Timelines */}
       {showParticipantTimeline && (
-        <div className="space-y-6">
-          {/* Time Scale */}
-          <div className="relative h-8 mb-4">
-            <div className="absolute inset-0 flex justify-between items-center text-xs text-gray-400 px-16">
-              {timeMarkers.map((marker, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col items-center"
-                  style={{ position: "absolute", left: `${marker.position}%` }}
-                >
-                  <div className="w-px h-2 bg-gray-600 mb-1"></div>
-                  <span>{marker.time}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Participant Timelines */}
-          <div className="space-y-4">
-            {data.participantArray.map((participant, index) => (
-              <TimelineRow
-                key={participant.participantId}
-                participant={participant}
-                sessionStart={sessionStart}
-                sessionEnd={sessionEnd}
-                sessionDuration={sessionDuration}
-                participantIndex={index}
-              />
-            ))}
-          </div>
+        <div className="space-y-2">
+          {data.participantArray.map((participant, idx) => (
+            <TimelineRow
+              key={participant.participantId}
+              participant={participant}
+              sessionStart={sessionStart}
+              sessionEnd={sessionEnd}
+              sessionDuration={sessionDuration}
+              participantIndex={idx}
+            />
+          ))}
         </div>
       )}
     </div>
