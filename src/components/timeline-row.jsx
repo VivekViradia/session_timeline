@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useMemo } from "react" // Added useMemo
 import { ChevronRight, Video, Mic, AlertTriangle, LogIn, LogOut } from "lucide-react"
 import EventTooltip from "./event-tooltip"
 import { Button } from "./ui/button"
@@ -37,14 +37,14 @@ export default function TimelineRow({
     })
   }
 
-  const formatDate = (dateString) => {
+  const formatDateWithTime = (dateString) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "long",
       year: "numeric",
-    })
-  }
+    }) + `, ${formatTime(dateString)}`;
+  };
 
   const handleMouseEnter = (event, e) => {
     setHoveredEvent(event)
@@ -57,26 +57,55 @@ export default function TimelineRow({
 
   const participantCode = `ABC${String(participantIndex + 1).padStart(3, "0")}`
 
+  // Consolidate and sort all events for consistent rendering
+  const allEvents = useMemo(() => {
+    const events = [];
+
+    participant.timelog.forEach((session) => {
+      events.push({ type: "join", time: session.start, participant: participant.name });
+      events.push({ type: "leave", time: session.end, participant: participant.name });
+    });
+
+    participant.events.webcam.forEach((event) => {
+      events.push({ type: "webcam_on", time: event.start, participant: participant.name });
+      events.push({ type: "webcam_off", time: event.end, participant: participant.name });
+    });
+
+    participant.events.mic.forEach((event) => {
+      events.push({ type: "mic_on", time: event.start, participant: participant.name });
+      events.push({ type: "mic_off", time: event.end, participant: participant.name });
+    });
+
+    participant.events.errors?.forEach((error) => {
+      events.push({ type: "error", time: error.start, message: error.message, participant: participant.name });
+    });
+
+    return events.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+  }, [participant]);
+
+  // Calculate total interaction events for the badge
+  const totalInteractionEvents = participant?.events?.webcam?.length + participant.events?.mic?.length + participant?.events?.errors?.length + participant?.timelog?.length;
+
+
   return (
     <div className="flex items-center gap-4 bg-gray-900 border-b border-gray-800 py-2 px-2 rounded">
       {/* Left: Participant Info */}
       <div className="w-56 flex-shrink-0">
         <div className="text-white font-medium">{participant.name} ({participantCode})</div>
         <div className="text-xs text-gray-400">
-          {formatDate(participant.timelog[0]?.start || sessionStart.toISOString())},{" "}
-          {formatTime(participant.timelog[0]?.start || sessionStart.toISOString())} | Duration {sessionDuration} Mins
+          {formatDateWithTime(participant.timelog[0]?.start || sessionStart.toISOString())} | Duration {sessionDuration} Mins
         </div>
       </div>
 
       {/* Center: Timeline */}
       <div className="relative flex-1 h-12 overflow-visible">
-        {/* Session duration bar */}
-        <div className="absolute inset-y-0 left-0 right-0 rounded-lg"></div>
+        {/* Full session duration background bar */}
+        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-1 rounded-lg bg-gray-700"></div>
 
         {/* Active session periods */}
         {participant.timelog.map((session, index) => (
           <div
-            key={index}
+            key={`active-${index}`}
             className="absolute top-1/2 -translate-y-1/2 h-2 bg-blue-500 rounded"
             style={{
               left: `${getPositionPercentage(session.start)}%`,
@@ -85,131 +114,97 @@ export default function TimelineRow({
           />
         ))}
 
-        {/* Join/Leave Events */}
-        {participant.timelog.map((session, index) => (
-          <React.Fragment key={index}>
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-700 rounded-full flex items-center justify-center z-10"
-              style={{ left: `calc(${getPositionPercentage(session.start)}% - 14px)` }}
-              onMouseEnter={(e) =>
-                handleMouseEnter(
-                  { type: "join", time: session.start, participant: participant.name },
-                  e
-                )
-              }
-              onMouseLeave={handleMouseLeave}
-            >
-              <LogIn className="w-4 h-4 text-white" />
-            </div>
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-700 rounded-full flex items-center justify-center z-10"
-              style={{ left: `calc(${getPositionPercentage(session.end)}% - 14px)` }}
-              onMouseEnter={(e) =>
-                handleMouseEnter(
-                  { type: "leave", time: session.end, participant: participant.name },
-                  e
-                )
-              }
-              onMouseLeave={handleMouseLeave}
-            >
-              <LogOut className="w-4 h-4 text-white" />
-            </div>
-          </React.Fragment>
-        ))}
-
-        {/* Webcam Events */}
-        {participant.events.webcam.map((event, index) => (
-          <React.Fragment key={`webcam-${index}`}>
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center z-20"
-              style={{ left: `calc(${getPositionPercentage(event.start)}% - 14px)` }}
-              onMouseEnter={(e) =>
-                handleMouseEnter(
-                  { type: "webcam_on", time: event.start, participant: participant.name },
-                  e
-                )
-              }
-              onMouseLeave={handleMouseLeave}
-            >
-              <Video className="w-4 h-4 text-white" />
-            </div>
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-600 rounded-full flex items-center justify-center z-20"
-              style={{ left: `calc(${getPositionPercentage(event.end)}% - 14px)` }}
-              onMouseEnter={(e) =>
-                handleMouseEnter(
-                  { type: "webcam_off", time: event.end, participant: participant.name },
-                  e
-                )
-              }
-              onMouseLeave={handleMouseLeave}
-            >
-              <Video className="w-4 h-4 text-white opacity-50" />
-            </div>
-          </React.Fragment>
-        ))}
-
-        {/* Mic Events */}
-        {participant.events.mic.map((event, index) => (
-          <React.Fragment key={`mic-${index}`}>
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center z-20"
-              style={{ left: `calc(${getPositionPercentage(event.start)}% - 14px)` }}
-              onMouseEnter={(e) =>
-                handleMouseEnter(
-                  { type: "mic_on", time: event.start, participant: participant.name },
-                  e
-                )
-              }
-              onMouseLeave={handleMouseLeave}
-            >
-              <Mic className="w-4 h-4 text-white" />
-            </div>
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-gray-600 rounded-full flex items-center justify-center z-20"
-              style={{ left: `calc(${getPositionPercentage(event.end)}% - 14px)` }}
-              onMouseEnter={(e) =>
-                handleMouseEnter(
-                  { type: "mic_off", time: event.end, participant: participant.name },
-                  e
-                )
-              }
-              onMouseLeave={handleMouseLeave}
-            >
-              <Mic className="w-4 h-4 text-white opacity-50" />
-            </div>
-          </React.Fragment>
-        ))}
-
-        {/* Error Events */}
-        {participant.events.errors?.map((error, index) => (
-          <div
-            key={`error-${index}`}
-            className="absolute top-1/2 -translate-y-1/2 w-7 h-7 bg-red-600 rounded-full flex items-center justify-center z-30"
-            style={{ left: `calc(${getPositionPercentage(error.start)}% - 14px)` }}
-            onMouseEnter={(e) =>
-              handleMouseEnter(
-                { type: "error", time: error.start, message: error.message, participant: participant.name },
-                e
-              )
+        {/* Dotted lines for disconnected periods */}
+        {participant.timelog.map((session, index) => {
+          if (index < participant.timelog.length - 1) {
+            const currentEnd = new Date(session.end);
+            const nextStart = new Date(participant.timelog[index + 1].start);
+            if (nextStart.getTime() > currentEnd.getTime()) {
+              const leftPos = getPositionPercentage(currentEnd);
+              const width = getDurationPercentage(currentEnd, nextStart);
+              return (
+                <div
+                  key={`gap-${index}`}
+                  className="absolute top-1/2 -translate-y-1/2 h-px bg-gray-500 border-t border-dotted border-gray-500"
+                  style={{
+                    left: `${leftPos}%`,
+                    width: `${width}%`,
+                  }}
+                />
+              );
             }
-            onMouseLeave={handleMouseLeave}
-          >
-            <AlertTriangle className="w-4 h-4 text-white" />
-          </div>
-        ))}
+          }
+          return null;
+        })}
+
+        {/* All Events (Join/Leave, Webcam, Mic, Errors) */}
+        {allEvents.map((event, index) => {
+          const iconSizeClass = "w-7 h-7"; // Consistent size for all icons
+          let iconComponent;
+          let bgColorClass;
+          let zIndexClass = "z-10"; // Default z-index for most icons
+
+          switch (event.type) {
+            case "join":
+              iconComponent = <LogIn className="w-4 h-4 text-white" />;
+              bgColorClass = "bg-gray-700";
+              break;
+            case "leave":
+              iconComponent = <LogOut className="w-4 h-4 text-white" />;
+              bgColorClass = "bg-gray-700";
+              break;
+            case "webcam_on":
+              iconComponent = <Video className="w-4 h-4 text-white" />;
+              bgColorClass = "bg-blue-600";
+              zIndexClass = "z-20";
+              break;
+            case "webcam_off":
+              iconComponent = <Video className="w-4 h-4 text-white opacity-50" />;
+              bgColorClass = "bg-gray-600";
+              zIndexClass = "z-20";
+              break;
+            case "mic_on":
+              iconComponent = <Mic className="w-4 h-4 text-white" />;
+              bgColorClass = "bg-blue-600";
+              zIndexClass = "z-20";
+              break;
+            case "mic_off":
+              iconComponent = <Mic className="w-4 h-4 text-white opacity-50" />;
+              bgColorClass = "bg-gray-600";
+              zIndexClass = "z-20";
+              break;
+            case "error":
+              iconComponent = <AlertTriangle className="w-4 h-4 text-white" />;
+              bgColorClass = "bg-red-600";
+              zIndexClass = "z-30";
+              break;
+            default:
+              return null;
+          }
+
+          return (
+            <div
+              key={`${event.type}-${index}-${event.time}`}
+              className={`absolute top-1/2 -translate-y-1/2 ${iconSizeClass} ${bgColorClass} rounded-full flex items-center justify-center ${zIndexClass}`}
+              style={{ left: `calc(${getPositionPercentage(event.time)}% - 14px)` }}
+              onMouseEnter={(e) => handleMouseEnter(event, e)}
+              onMouseLeave={handleMouseLeave}
+            >
+              {iconComponent}
+            </div>
+          );
+        })}
 
         {/* Event count badge */}
-        {(participant.events.mic.length > 1 || participant.events.webcam.length > 1) && (
+        {totalInteractionEvents > 0 && ( // Show badge if there are any interaction events
           <div
             className="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-blue-800 rounded-full flex items-center justify-center text-xs text-white font-medium z-40"
             style={{
-              left: `calc(${getPositionPercentage(
-                participant.events.mic[0]?.start || participant.events.webcam[0]?.start,
-              )}% + 20px)`,
+              // Position it closer to the right end, or based on the last event's position if applicable
+              right: '20px', // Adjusted to be on the right side as per UI
             }}
           >
-            {(participant.events.mic.length + participant.events.webcam.length) * 2}
+            {totalInteractionEvents}
           </div>
         )}
       </div>
